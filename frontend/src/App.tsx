@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  Plus, 
-  Settings, 
-  User, 
-  Send, 
+import {
+  MessageSquare,
+  Plus,
+  Settings,
+  User,
+  Send,
   Menu,
   Bot,
   MoreHorizontal
@@ -92,7 +92,7 @@ function App() {
           <Plus size={18} />
           New Chat
         </button>
-        
+
         <div className="chat-history">
           <div className="history-item">
             <MessageSquare size={16} />
@@ -114,7 +114,7 @@ function App() {
             <span>Settings</span>
           </div>
           <div className="user-profile">
-            <div className="avatar bot" style={{ width: '24px', height: '24px', borderRadius: '50%'}}>
+            <div className="avatar bot" style={{ width: '24px', height: '24px', borderRadius: '50%' }}>
               <User size={14} />
             </div>
             <span>User Name</span>
@@ -141,31 +141,31 @@ function App() {
                     <Bot size={20} />
                   </div>
                 )}
-                
+
                 <div className="message-content">
                   {msg.content}
                 </div>
 
                 {msg.role === 'user' && (
-                   <div className="avatar user">
+                  <div className="avatar user">
                     <User size={20} />
                   </div>
                 )}
               </div>
             </div>
           ))}
-          
+
           {isTyping && (
-             <div className="message-wrapper bot">
-             <div className="message-inner">
-               <div className="avatar bot">
-                 <Bot size={20} />
-               </div>
-               <div className="message-content" style={{ display: 'flex', alignItems: 'center', gap: '4px', height: '24px' }}>
-                 <MoreHorizontal size={24} className="typing-indicator" color="var(--text-secondary)" />
-               </div>
-             </div>
-           </div>
+            <div className="message-wrapper bot">
+              <div className="message-inner">
+                <div className="avatar bot">
+                  <Bot size={20} />
+                </div>
+                <div className="message-content" style={{ display: 'flex', alignItems: 'center', gap: '4px', height: '24px' }}>
+                  <MoreHorizontal size={24} className="typing-indicator" color="var(--text-secondary)" />
+                </div>
+              </div>
+            </div>
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -181,8 +181,8 @@ function App() {
               onKeyDown={handleKeyDown}
               rows={1}
             />
-            <button 
-              className="submit-btn" 
+            <button
+              className="submit-btn"
               onClick={handleSendMessage}
               disabled={!input.trim() || isTyping}
             >
