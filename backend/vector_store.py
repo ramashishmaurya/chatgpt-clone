@@ -9,7 +9,7 @@ from qdrant_client import models
 load_dotenv()
 
 
-_embeddings = None
+_embeddings = None 
 _qdrant_client = None
 
 
@@ -88,4 +88,5 @@ def add_documents(session_id: str, documents):
     )
 
     return vectorstore
+
 
