@@ -69,7 +69,7 @@ def get_or_create_collection(session_id: str):
     )
 
 
-def add_documents(session_id: str, documents):
+def add_documents(session_id: str, documents): # expected only the session id and documents 
     """
     Embed documents using Gemini and store them in Qdrant.
     """

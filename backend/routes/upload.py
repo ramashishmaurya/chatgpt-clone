@@ -9,14 +9,14 @@ router = APIRouter(
 )
 
 
-@router.post("/upload/")
+@router.post("/upload")
 async def upload_file(
     # session_id: str = Form(...) ,
     file: UploadFile = File(...)
 ):
     try:
         # Validate file
-        if not file.filename:
+        if not file.filename: 
             raise HTTPException(
                 status_code=400,
                 detail="File name is required"
@@ -83,3 +83,4 @@ async def upload_file(
             status_code=500,
             detail=f"Failed to upload file: {str(e)}"
         )
+
