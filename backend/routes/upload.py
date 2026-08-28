@@ -1,7 +1,10 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException , Form
+from fastapi import APIRouter, UploadFile, File, HTTPException , Form, Depends
+from sqlalchemy.orm import Session
 from upload_data import load_and_split
 from vector_store import add_documents
 import uuid
+from database import get_db
+from models import ChatSession
 
 router = APIRouter(
     prefix="/api",
@@ -12,7 +15,8 @@ router = APIRouter(
 @router.post("/upload")
 async def upload_file(
     # session_id: str = Form(...) ,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
 ):
     try:
         # Validate file
@@ -63,6 +67,14 @@ async def upload_file(
             session_id=session_id,
             documents=documents
         )
+        
+        # Save session to DB
+        title = file.filename
+        if len(title) > 25:
+            title = title[:25] + "..."
+        db_session = ChatSession(id=session_id, title=title)
+        db.add(db_session)
+        db.commit()
 
         return {
             "success": True,
@@ -83,4 +95,3 @@ async def upload_file(
             status_code=500,
             detail=f"Failed to upload file: {str(e)}"
         )
-

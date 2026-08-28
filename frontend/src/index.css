@@ -130,10 +130,42 @@ input, textarea {
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   cursor: pointer;
   transition: background 0.2s;
   font-size: 14px;
+}
+
+.history-item-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.history-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delete-chat-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  padding: 4px;
+}
+
+.history-item:hover .delete-chat-btn {
+  opacity: 1;
+}
+
+.delete-chat-btn:hover {
+  color: #ff6b6b;
 }
 
 .history-item:hover {
@@ -278,9 +310,9 @@ input, textarea {
   background-color: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 10px 48px 10px 16px;
+  padding: 10px 12px;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   box-shadow: 0 0 15px rgba(0,0,0,0.1);
   transition: background-color 0.2s, border-color 0.2s;
 }
@@ -290,8 +322,77 @@ input, textarea {
   border-color: rgba(255,255,255,0.4);
 }
 
-.chat-input {
+.selected-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--bg-input-hover);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  margin-left: 4px;
+  width: max-content;
+  max-width: 100%;
+}
+
+.selected-file-preview .file-icon {
+  color: var(--accent-color);
+}
+
+.selected-file-preview .file-name {
+  font-size: 14px;
+  color: var(--text-primary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove-file-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  background: rgba(0,0,0,0.2);
+  transition: background 0.2s;
+}
+
+.remove-file-btn:hover {
+  background: rgba(0,0,0,0.4);
+  color: var(--text-primary);
+}
+
+.input-row {
+  display: flex;
+  align-items: flex-end;
   width: 100%;
+  position: relative;
+}
+
+.upload-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background-color 0.2s;
+  margin-right: 8px;
+  margin-bottom: 2px;
+}
+
+.upload-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.chat-input {
+  flex: 1;
   background: transparent;
   border: none;
   color: var(--text-primary);
@@ -300,7 +401,7 @@ input, textarea {
   resize: none;
   max-height: 200px;
   outline: none;
-  padding: 2px 0;
+  padding: 6px 40px 6px 0;
 }
 
 .chat-input::placeholder {
@@ -309,8 +410,8 @@ input, textarea {
 
 .submit-btn {
   position: absolute;
-  right: 12px;
-  bottom: 8px;
+  right: 0;
+  bottom: 2px;
   background-color: var(--accent-color);
   color: white;
   border-radius: 8px;

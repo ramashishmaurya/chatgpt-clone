@@ -14,7 +14,7 @@ from retriever import get_retriever
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
-    temperature=0,
+    temperature=0.3, # Slightly increased temperature for more natural conversational responses
     google_api_key=os.getenv(
         "GOOGLE_API_KEY"
     ),
@@ -23,17 +23,10 @@ llm = ChatGoogleGenerativeAI(
 
 prompt = ChatPromptTemplate.from_template(
     """
-You are a document question-answering assistant.
+You are a helpful and intelligent AI assistant. 
 
-Answer the user's question ONLY using the
-provided document context.
-
-If the answer cannot be found in the context,
-say exactly:
-
-"I couldn't find this information in the document."
-
-Do NOT use your general knowledge.
+If document context is provided below, try to use it to answer the user's question. 
+If the answer cannot be found in the context, or if no context is provided, you should answer the question using your general knowledge.
 
 Document context:
 {context}
@@ -50,7 +43,7 @@ async def ask_question(
     session_id: str,
     question: str,
 ):
-
+    
     retriever = get_retriever(
         session_id=session_id,
         k=4,
@@ -62,20 +55,15 @@ async def ask_question(
         question
     )
 
-    # No documents found
-    if not documents:
-
-        return (
-            "I couldn't find this information "
-            "in the document."
-        )
-
-    # Combine chunks
+    # Combine chunks (will be empty string if no documents are found)
     context = "\n\n".join(
         document.page_content
         for document in documents
     )
-
+    
+    if not context:
+        context = "No document uploaded or no relevant information found."
+    
     # Create prompt
     messages = prompt.format_messages(
         context=context,
@@ -88,5 +76,3 @@ async def ask_question(
     )
 
     return response.content
-
-

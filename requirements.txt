@@ -12,7 +12,6 @@ langgraph
 langchain-text-splitters
 langgraph-checkpoint-sqlite==3.1.0
 
-qdrant-client
 langchain-qdrant
 
 pypdf==6.12.0
