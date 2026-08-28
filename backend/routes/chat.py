@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import uuid
 
-from rag_services import ask_question
+from rag_services import ask_question, stream_question
 from database import get_db
 from models import ChatSession, ChatMessage
 
@@ -56,6 +57,43 @@ async def chat(
         "answer": answer,
     }
 
+@router.post("/chat/stream")
+async def chat_stream(
+    request: ChatRequest,
+    db: Session = Depends(get_db)
+):
+    
+    # Check if session exists, if not create it
+    db_session = db.query(ChatSession).filter(ChatSession.id == request.session_id).first()
+    if not db_session:
+        db_session = ChatSession(
+            id=request.session_id, 
+            title=request.question[:25] + "..." if request.question else "New Chat"
+        )
+        db.add(db_session)
+        db.commit()
+
+    # Save user message
+    user_msg = ChatMessage(session_id=request.session_id, role="user", content=request.question)
+    db.add(user_msg)
+    db.commit()
+
+    async def event_generator():
+        full_answer = ""
+        async for chunk in stream_question(
+            session_id=request.session_id,
+            question=request.question,
+        ):
+            yield chunk
+            full_answer += chunk
+        
+        # Save bot message
+        bot_msg = ChatMessage(session_id=request.session_id, role="bot", content=full_answer)
+        db.add(bot_msg)
+        db.commit()
+
+    return StreamingResponse(event_generator(), media_type="text/plain")
+
 @router.get("/chats")
 def get_chats(db: Session = Depends(get_db)):
     chats = db.query(ChatSession).order_by(ChatSession.created_at.desc()).all()
@@ -84,3 +122,15 @@ def create_new_chat(db: Session = Depends(get_db)):
     db.add(db_session)
     db.commit()
     return {"id": new_id, "title": "New Chat"}
+
+@router.delete("/chat/{session_id}")
+def delete_chat_session(session_id: str, db: Session = Depends(get_db)):
+    db_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    
+    db.delete(db_session)
+    db.commit()
+    return {"message": "Chat deleted successfully"}
+
+
