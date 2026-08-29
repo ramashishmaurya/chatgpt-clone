@@ -1,6 +1,5 @@
 name: CI Pipeline
 
-# This triggers the workflow when you push code to the main branch or make a pull request
 on:
   push:
     branches: [ "main", "master" ]
@@ -16,14 +15,26 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Test if the Backend Dockerfile builds successfully
+      # 2. Set up Node.js and run Frontend Linting
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Frontend Dependencies and Lint
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run lint
+
+      # 3. Test if the Backend Dockerfile builds successfully
       - name: Build Backend Docker Image
         run: docker build -t my-backend -f backend/Dockerfile .
 
-      # 3. Test if the Frontend Dockerfile builds successfully
+      # 4. Test if the Frontend Dockerfile builds successfully
       - name: Build Frontend Docker Image
         run: docker build -t my-frontend -f frontend/Dockerfile ./frontend
         
-      # 4. Verify Docker Compose can start everything successfully
+      # 5. Verify Docker Compose can start everything successfully
       - name: Test Docker Compose Build
         run: docker compose build

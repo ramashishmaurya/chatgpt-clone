@@ -28,6 +28,8 @@ interface ChatSession {
   serverId?: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -45,7 +47,7 @@ function App() {
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/chats');
+        const res = await fetch(`${API_BASE_URL}/api/chats`);
         if (res.ok) {
           const data = await res.json();
           if (data.length > 0) {
@@ -125,7 +127,7 @@ function App() {
         question: content
       };
 
-      const response = await fetch('http://127.0.0.1:8000/api/chat/stream', {
+      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -216,7 +218,7 @@ function App() {
       formData.append('file', file);
 
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/upload', {
+        const response = await fetch(`${API_BASE_URL}/api/upload`, {
           method: 'POST',
           body: formData,
         });
@@ -281,7 +283,7 @@ function App() {
 
   const createNewChat = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/chat/new', { method: 'POST' });
+      const res = await fetch(`${API_BASE_URL}/api/chat/new`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         const newChat: ChatSession = {
@@ -327,7 +329,7 @@ function App() {
     if (window.innerWidth <= 768) setSidebarOpen(false);
     
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/chat/${id}/messages`);
+      const res = await fetch(`${API_BASE_URL}/api/chat/${id}/messages`);
       if (res.ok) {
         const msgs = await res.json();
         setChats(prev => prev.map(c => {
@@ -359,7 +361,7 @@ function App() {
     e.stopPropagation();
     
     try {
-      await fetch(`http://127.0.0.1:8000/api/chat/${id}`, {
+      await fetch(`${API_BASE_URL}/api/chat/${id}`, {
         method: 'DELETE',
       });
     } catch (error) {
