@@ -1,0 +1,29 @@
+name: CI Pipeline
+
+# This triggers the workflow when you push code to the main branch or make a pull request
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the code from your repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Test if the Backend Dockerfile builds successfully
+      - name: Build Backend Docker Image
+        run: docker build -t my-backend -f backend/Dockerfile .
+
+      # 3. Test if the Frontend Dockerfile builds successfully
+      - name: Build Frontend Docker Image
+        run: docker build -t my-frontend -f frontend/Dockerfile ./frontend
+        
+      # 4. Verify Docker Compose can start everything successfully
+      - name: Test Docker Compose Build
+        run: docker compose build

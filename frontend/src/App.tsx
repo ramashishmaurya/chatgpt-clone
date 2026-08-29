@@ -125,7 +125,7 @@ function App() {
         question: content
       };
 
-      const response = await fetch('http://127.0.0.1:8000/api/chat', {
+      const response = await fetch('http://127.0.0.1:8000/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -137,23 +137,47 @@ function App() {
         throw new Error('Failed to get response from server');
       }
 
-      const data = await response.json();
+      const botMessageId = (Date.now() + 1).toString();
       
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'bot',
-        content: data.answer || "No response received",
-      };
-      
+      // Initialize an empty bot message
       setChats(prevChats => prevChats.map(chat => {
         if (chat.id === currentChatId) {
           return {
             ...chat,
-            messages: [...chat.messages, botMessage]
+            messages: [...chat.messages, { id: botMessageId, role: 'bot', content: '' }]
           };
         }
         return chat;
       }));
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (reader) {
+        let done = false;
+        let streamedText = '';
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            streamedText += chunk;
+            
+            // Update the specific bot message
+            setChats(prevChats => prevChats.map(chat => {
+              if (chat.id === currentChatId) {
+                return {
+                  ...chat,
+                  messages: chat.messages.map(msg => 
+                    msg.id === botMessageId ? { ...msg, content: streamedText } : msg
+                  )
+                };
+              }
+              return chat;
+            }));
+          }
+        }
+      }
     } catch (error) {
       console.error("Chat error:", error);
       const errorMessage: Message = {
@@ -331,8 +355,16 @@ function App() {
     loadChatMessages(id);
   };
 
-  const deleteChat = (e: React.MouseEvent, id: string) => {
+  const deleteChat = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    
+    try {
+      await fetch(`http://127.0.0.1:8000/api/chat/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error("Failed to delete chat on backend:", error);
+    }
     
     setChats(prev => {
       const newChats = prev.filter(c => c.id !== id);
