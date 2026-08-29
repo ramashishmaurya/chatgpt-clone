@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   MessageSquare,
   Plus,
-  Settings,
   User,
   Send,
   Menu,
