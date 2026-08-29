@@ -29,3 +29,10 @@ def root():
     return {
         "message": "API is running"
     }
+
+
+@app.get("/username")
+def username():
+    return{
+        'name' : 'nam is ashish okay '
+    } 
