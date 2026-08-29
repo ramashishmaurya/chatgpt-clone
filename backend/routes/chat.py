@@ -123,6 +123,7 @@ def create_new_chat(db: Session = Depends(get_db)):
     db.commit()
     return {"id": new_id, "title": "New Chat"}
 
+
 @router.delete("/chat/{session_id}")
 def delete_chat_session(session_id: str, db: Session = Depends(get_db)):
     db_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
@@ -132,5 +133,6 @@ def delete_chat_session(session_id: str, db: Session = Depends(get_db)):
     db.delete(db_session)
     db.commit()
     return {"message": "Chat deleted successfully"}
+
 
 
