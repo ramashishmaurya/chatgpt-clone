@@ -92,7 +92,7 @@ async def chat_stream(
         db.add(bot_msg)
         db.commit()
 
-    return StreamingResponse(event_generator(), media_type="text/plain")
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @router.get("/chats")
 def get_chats(db: Session = Depends(get_db)):
