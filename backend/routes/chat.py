@@ -135,4 +135,3 @@ def delete_chat_session(session_id: str, db: Session = Depends(get_db)):
     return {"message": "Chat deleted successfully"}
 
 
-
