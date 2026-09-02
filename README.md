@@ -68,6 +68,26 @@ npm run dev
 
 The frontend will be available at `http://localhost:5173` (or similar, check Vite output) and the backend API runs on `http://127.0.0.1:8000`.
 
+## 🧠 Architecture Flowchart
+
+```mermaid
+graph TD
+    User([User]) -->|1. Asks Question| UI[React Frontend]
+    UI -->|2. API Request| API[FastAPI Backend]
+    
+    API <-->|Save/Load Chat| SQL[(SQL Database)]
+    
+    API -->|3. Route Question| Agent{LangGraph Agent}
+    
+    Agent <-->|4a. Search Uploads| Qdrant[(Qdrant Vector DB)]
+    Agent <-->|4b. Think/Reason| LLM[Gemini 2.5 Flash]
+    
+    Agent <-->|4c. Web Search| Search[Tavily API]
+    
+    Agent -->|5. Final Response| API
+    API -->|6. Displays Answer| UI
+```
+
 ## 🧠 How the AI Works
 When you ask a question:
 1. **Document Retrieval:** The system first checks Qdrant to see if you have uploaded any documents relevant to your question.
