@@ -1,10 +1,11 @@
 import os
 
 from dotenv import load_dotenv
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from qdrant_client import models
+from llm_factory import get_embeddings as factory_get_embeddings
+from llm_factory import get_vector_size
 
 load_dotenv()
 
@@ -14,15 +15,12 @@ _qdrant_client = None
 
 
 def get_embeddings():
-    """Return Gemini Embeddings (Cached)."""
+    """Return Embeddings from Factory (Cached)."""
 
     global _embeddings
 
     if _embeddings is None:
-        _embeddings = GoogleGenerativeAIEmbeddings(
-            model="gemini-embedding-001",
-            google_api_key=os.getenv("GOOGLE_API_KEY"),
-        )
+        _embeddings = factory_get_embeddings()
 
     return _embeddings
 
@@ -53,7 +51,7 @@ def get_or_create_collection(session_id: str):
         client.create_collection(
             collection_name=session_id,
             vectors_config=models.VectorParams(
-                size=3072,
+                size=get_vector_size(),
                 distance=models.Distance.COSINE,
             ),
         )

@@ -5,7 +5,7 @@ from typing import Literal
 from dotenv import load_dotenv
 
 from langchain.tools import tool
-from langchain_google_genai import ChatGoogleGenerativeAI
+from llm_factory import get_llm
 from langchain_community.tools.tavily_search import TavilySearchResults
 
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -21,23 +21,14 @@ load_dotenv()
 # LLM
 # ============================================================
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0.3,
-    streaming=True,
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-)
+llm = get_llm(temperature=0.3)
 
 
 # ============================================================
 # ROUTER
 # ============================================================
 
-router_llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0,
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-)
+router_llm = get_llm(temperature=0.0)
 
 
 ROUTER_PROMPT = """
@@ -286,9 +277,9 @@ async def answer_document(
     question: str,
 ):
     """
-    Document question.
-
-    Qdrant is called ONLY here.
+    SELF-RAG IMPLEMENTATION:
+    Generates a draft answer, evaluates it for hallucinations against the context,
+    and loops to regenerate if it fails the check!
     """
 
     context = await retrieve_documents(
@@ -297,7 +288,7 @@ async def answer_document(
     )
 
     if not context:
-        context = "No relevant information was found in the uploaded documents."
+        return "No relevant information was found in the uploaded documents."
 
     system_msg = SystemMessage(
         content=DOCUMENT_SYSTEM_PROMPT.format(
@@ -309,12 +300,36 @@ async def answer_document(
         content=question
     )
 
-    response = await llm.ainvoke([
-        system_msg,
-        human_msg,
-    ])
+    max_retries = 2
+    draft_text = ""
+    
+    for attempt in range(max_retries):
+        # 1. Generate Draft Answer
+        response = await llm.ainvoke([system_msg, human_msg])
+        draft_text = normalize_content(response.content)
+        
+        # 2. Self-Reflection (Hallucination Checker)
+        evaluator_prompt = f"You are a strict evaluator. Does the following answer contain any hallucinated facts that are NOT explicitly supported by the provided context? Output exactly one word: 'yes' (it contains hallucinations) or 'no' (it is fully supported and grounded).\n\nContext: {context}\n\nAnswer: {draft_text}"
+        
+        try:
+            eval_result = await router_llm.ainvoke(evaluator_prompt)
+            grade = eval_result.content.strip().lower()
+            
+            if "yes" in grade:
+                print(f"\n[Self-RAG] Attempt {attempt+1}: Hallucination Detected! Regenerating answer...")
+                # Tell the LLM it failed so it corrects itself in the next loop
+                human_msg = HumanMessage(content=f"{question}\n\nSystem Feedback: Your previous answer contained information not found in the text. Please try again and stick strictly to the context.")
+            else:
+                print(f"\n[Self-RAG] Attempt {attempt+1}: Answer is fully grounded and supported. Approved!")
+                return draft_text
+                
+        except Exception as e:
+            print("[Self-RAG] Evaluation failed, returning draft:", e)
+            return draft_text
 
-    return normalize_content(response.content)
+    # If it failed all retries, return the last draft with a warning
+    print("\n[Self-RAG] Max retries reached. Returning best effort.")
+    return draft_text
 
 
 # ============================================================
