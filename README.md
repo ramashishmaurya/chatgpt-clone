@@ -72,20 +72,42 @@ The frontend will be available at `http://localhost:5173` (or similar, check Vit
 
 ```mermaid
 graph TD
-    User([User]) -->|1. Asks Question| UI[React Frontend]
-    UI -->|2. API Request| API[FastAPI Backend]
+    User([User]) -->|Upload PDF / Ask Q| UI[React Frontend]
+    UI --> API[FastAPI Backend]
     
-    API <-->|Save/Load Chat| SQL[(SQL Database)]
+    subgraph Core
+        LLM[Dynamic LLM Factory\nGroq/Ollama/Gemini]
+    end
+
+    subgraph Data Ingestion Pipeline
+        API -->|Upload Flow| PyMu[PyMuPDF + LLaVA Vision]
+        PyMu -->|Text + Image Summaries| CChunk[Contextual Chunking]
+        CChunk --> Qdrant[(Qdrant + BM25 Index)]
+    end
     
-    API -->|3. Route Question| Agent{LangGraph Agent}
+    subgraph Advanced Query Pipeline
+        API -->|Ask Q Flow| Router{Agentic Router}
+        
+        Router -->|Normal Chat| LLM
+        Router -->|Needs Web| Tavily[Tavily Search API]
+        
+        Router -->|Needs Doc| Multi[Multi-Query Agent]
+        Multi -->|3 Queries| Hybrid[Hybrid Search\nDense + Sparse]
+        Hybrid --> Qdrant
+        Qdrant -->|Top 20| Flash[FlashRank Cross-Encoder]
+        Flash -->|Top 4| CRAG{CRAG Evaluator}
+        
+        CRAG -->|Irrelevant| Tavily
+        CRAG -->|Relevant Context| LLM
+        
+        LLM -->|Draft| SelfRAG{Self-RAG Hallucination Check}
+        SelfRAG -->|Fail| LLM
+    end
     
-    Agent <-->|4a. Search Uploads| Qdrant[(Qdrant Vector DB)]
-    Agent <-->|4b. Think/Reason| LLM[Gemini 2.5 Flash]
-    
-    Agent <-->|4c. Web Search| Search[Tavily API]
-    
-    Agent -->|5. Final Response| API
-    API -->|6. Displays Answer| UI
+    SelfRAG -->|Pass| Output[Final Verified Answer]
+    Tavily --> Output
+    Output --> API
+    API -->|Stream| UI
 ```
 
 ## 🧠 How the AI Works
