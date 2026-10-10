@@ -1,76 +1,72 @@
-# 🚀 Enterprise-Grade Advanced RAG Architecture (ChatGPT Clone)
+# 🚀 The Ultimate AI Engineering Guide: Advanced RAG Architecture
 
-Welcome to the ultimate **AI Engineering** project. This is not just a simple ChatGPT clone; it is a fully modular, locally-hosted, Enterprise-grade RAG (Retrieval-Augmented Generation) pipeline that implements the top 10 most advanced AI research techniques used by Silicon Valley startups today.
-
----
-
-## 🏗️ 1. The Dynamic LLM Factory Pattern
-The backend is completely decoupled from any single AI provider. We use the **Factory Design Pattern** (`llm_factory.py`) to dynamically route traffic based on your `.env` configuration.
-
-- **`LLM_PROVIDER=groq`** ⚡: Uses Groq's LPU (Language Processing Unit) for ultra-fast inference using `qwen/qwen3.8-27b`.
-- **`LLM_PROVIDER=ollama`** 🔒: Runs 100% offline and privately on your machine using `llama3`.
-- **`LLM_PROVIDER=gemini`** 🌐: Uses Google's `gemini-1.5-flash` via API.
-- **Hybrid Strategy**: Even when using Groq/Gemini for chat, the system smartly falls back to local **Ollama (`nomic-embed-text`)** for embeddings, resulting in zero-cost vectorizations.
+This guide breaks down exactly how the **Top 10 Advanced RAG Techniques** are implemented in this project. We have mapped every advanced feature to its specific file and folder so that any developer can easily trace the code, understand the flow, and learn how to build enterprise-grade AI pipelines.
 
 ---
 
-## 🧠 2. The 7-Layer Advanced RAG Pipeline
+## 📁 1. The Dynamic LLM Factory Pattern
+**File:** `backend/llm_factory.py`
 
-When a document is uploaded and queried, it goes through a cutting-edge pipeline to ensure zero hallucinations and maximum accuracy:
-
-### Step 1: Multimodal RAG (Vision) 👁️
-Normal RAG throws away images in PDFs. Our pipeline uses `PyMuPDF (fitz)` to extract charts, tables, and photos, and sends them to a local Vision model (**LLaVA**) to generate rich text summaries, making visual data searchable.
-
-### Step 2: Contextual Chunking 🧩
-Chunking breaks context. We use a secondary LLM to read the *entire* document, generate a global 1-sentence summary, and inject that summary into the metadata of *every single chunk*.
-
-### Step 3: Metadata-Filtered Retrieval 🗂️
-Instead of searching the entire Qdrant database, we inject metadata tags (e.g., `file_type`, `source`) into vectors, allowing Qdrant to filter out irrelevant files *before* similarity search begins, drastically saving compute.
-
-### Step 4: Hybrid Search + RRF ⚖️
-We don't rely purely on Vector/Dense search (which fails at exact keywords like IDs or names). We use **BM25 (Sparse Search)** combined with **Qdrant (Dense Search)**, and merge their scores using **Reciprocal Rank Fusion (RRF)**.
-
-### Step 5: Cross-Encoder Reranking 🥇
-Top 20 results from Hybrid Search are passed through a local HuggingFace Cross-Encoder (`FlashRank`). The Cross-Encoder scores the actual relevance of the document against the query and re-orders them, keeping only the Top 4.
-
-### Step 6: Agentic RAG (Multi-Query + Router) 🤖
-The system uses a **ReAct-style Router Pattern**. 
-1. The **Router Agent** analyzes the prompt and decides if it needs the `Qdrant DB Tool`, the `Tavily Web Search Tool`, or just casual conversation.
-2. The **Multi-Query Agent** takes the user's question, uses an LLM to rewrite it into 3 different variations, searches all 3, and combines the results to overcome poorly worded user queries.
-
-### Step 7: Corrective RAG (CRAG) & Self-RAG 🛑
-Before answering, the **Evaluator Agent** reads the retrieved documents. 
-- **CRAG**: If the retrieved documents are irrelevant, the AI rejects them and falls back to Web Search (Tavily).
-- **Self-RAG**: The LLM writes a draft answer and a strict Hallucination Checker reviews it. If the answer contains hallucinated facts not in the context, it throws an error and forces the LLM to rewrite it!
+**What happens here?**
+Instead of hardcoding OpenAI or Gemini everywhere, this file acts as the central brain for model selection. It reads your `backend/.env` file and dynamically imports the correct model.
+- If `LLM_PROVIDER=groq`, it routes to the lightning-fast Groq LPU (`qwen/qwen3.8-27b`).
+- If `LLM_PROVIDER=gemini`, it routes to `gemini-1.5-flash`.
+- Otherwise, it falls back to a 100% offline, local **Ollama** model. 
+- **Bonus:** It enforces local `nomic-embed-text` embeddings regardless of the chat model, ensuring zero API costs for vectorization.
 
 ---
 
-## 💻 Tech Stack
-- **Frontend**: React, TypeScript, TailwindCSS, Vite
-- **Backend**: FastAPI, Python, LangChain
-- **Vector Database**: Qdrant (Local)
-- **AI Models**: Groq (Cloud), Ollama LLaMA-3 (Local Text), Ollama LLaVA (Local Vision), Nomic (Local Embeddings)
+## 📁 2. Data Ingestion: Multimodal & Contextual RAG
+**File:** `backend/upload_data.py` (Function: `load_and_split`)
 
-## 🚀 How to Run
+**What happens here?**
+When a user uploads a document, it goes through an intense pre-processing phase before hitting the database:
+1. **Multimodal RAG (Vision):** The code uses `PyMuPDF (fitz)` to scan the PDF for images and charts. It extracts them, converts them to base64, and sends them to a local **LLaVA Vision Model**. LLaVA generates a text description of the image which is saved as a chunk.
+2. **Contextual Chunking:** Normal chunking destroys context (e.g. knowing what document a paragraph belongs to). We use an LLM to read the entire document, summarize it in 1 sentence, and then inject that summary (`[DOCUMENT CONTEXT: ...]`) at the beginning of *every single chunk*.
+3. **Metadata Injection:** We inject metadata tags (like `source` and `file_type`) into the chunks for future database filtering.
 
-1. **Install Dependencies:**
-   ```bash
-   cd backend && pip install -r requirements.txt
-   cd frontend && npm install
-   ```
-2. **Start Qdrant (Docker):**
-   ```bash
-   docker run -p 6333:6333 qdrant/qdrant
-   ```
-3. **Start the App:**
-   ```bash
-   # Terminal 1
-   cd backend
-   uvicorn main:app --reload
+---
 
-   # Terminal 2
-   cd frontend
-   npm run dev
-   ```
+## 📁 3. Storage: Hybrid Search Vector DB
+**File:** `backend/vector_store.py`
 
-*(Built for the modern AI Engineer. Happy Coding!)*
+**What happens here?**
+We initialize our **Qdrant Vector Database** here. However, instead of a basic Dense Vector search, we configure Qdrant to use **BM25 Sparse Vectors** as well. 
+This means when we search, the database performs both Semantic meaning search (Dense) AND exact Keyword matching (Sparse).
+
+---
+
+## 📁 4. The Retrieval Pipeline: Multi-Query, Reranker, & CRAG
+**File:** `backend/retriever.py` (Function: `get_advanced_retriever`)
+
+**What happens here?**
+This file builds the pipeline that fetches the answer. It combines 4 advanced techniques:
+1. **Agentic Multi-Query:** The `CustomMultiQueryRetriever` takes the user's question and uses an LLM to generate 3 different variations of it. It searches the DB for all 3 variations, fixing cases where the user asked a poorly-worded question.
+2. **Hybrid Retrieval:** It fetches results using both Dense and Sparse methods and merges them.
+3. **Cross-Encoder Reranking (FlashRank):** The DB returns 20 documents. A local HuggingFace AI (`FlashRank`) reads all 20, scores their actual relevance to the question, and throws away the garbage, keeping only the top 4.
+4. **CRAG (Corrective RAG):** The `CRAGEvaluatorRetriever` looks at the final 4 documents. If it deems them "Irrelevant", it completely drops them and falls back to a Web Search (Tavily).
+
+---
+
+## 📁 5. The Brain: Router Agent & Self-RAG
+**File:** `backend/rag_services.py`
+
+**What happens here?**
+This file is the orchestra conductor. It handles the final decision making and generation:
+1. **Router Agent (`route_question`):** Before doing anything, an LLM evaluates the user's prompt and decides: "Should I search the Qdrant DB? Should I search the Web? Or is this just a casual chat (like 'Hi')?"
+2. **Streaming Generation (`stream_question`):** It routes the query to the correct pipeline (Document vs Web vs Chat) and begins streaming the response chunk by chunk to the React frontend.
+3. **Self-RAG (Hallucination Checker):** Inside `answer_document`, after generating a draft response, an internal Hallucination Checker reviews the answer against the provided context. If the AI made up facts, it throws an error and is forced to rewrite the answer!
+
+---
+
+## 📁 6. Testing the Pipeline
+**Folder:** `backend/tests/`
+
+**What happens here?**
+This folder contains individual scripts allowing you to isolate and test each feature without running the full frontend:
+- `test_factory.py`: Tests if the LLM provider switching works.
+- `test_router.py`: Tests if the Agent correctly routes different types of questions.
+- `test_upload_pipeline.py`: Tests the metadata and contextual chunking logic.
+
+---
+*By reading these files in this exact order (`llm_factory` -> `upload_data` -> `vector_store` -> `retriever` -> `rag_services`), any developer can perfectly understand the flow of this Advanced AI Pipeline.*
